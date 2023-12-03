@@ -1,0 +1,1233 @@
+# @format
+
+openapi: 3.0.0
+info:
+  title: Book Review Open API Documentation
+  description: |
+    Book Review is an application to publish books by the publisher and users can share thier thoughts/comments about the books. 
+    We use here 3 Models. 
+    - User: manage users (Admin Only)
+    - Book: manage books (Publisher and Admin)
+    - Review: manage reviews (User and Admin)
+  termsOfService: https://jmrana.com/book-review/terms
+  contact:
+    name: Book Review Support
+    url: https://book-review.com/contact
+    email: info@book-review.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Test the API endpoints on the development environment
+  - url: https://book-review.com:8080
+    description: Test the API endpoints on the live server
+tags:
+  - name: Auth
+    description: Auth endpoints (public)
+  - name: Book
+    description: Book endpoints (public + private)
+  - name: Review
+    description: Review endpoints (public + private)
+  - name: User
+    description: User endpoints (private=> Admin only)
+paths:
+  "/health":
+    get:
+      description: Site health check
+      summary: health route
+      responses:
+        "200":
+          description: health route ok
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 200
+                  message:
+                    type: string
+                    example: OK
+  "/auth/register":
+    post:
+      tags: [Auth]
+      description: any user can register an account with their name, email and password. An admin account will create when no user exists on the system. the defaults role is user and status is pending. user can choose the role as user or publisher, but can't continue with admin
+      summary: Register a new account. PUBLIC
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/CreateUserDTO"
+      responses:
+        "201":
+          description: New user created successfull
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: number
+                    example: 201
+                  message:
+                    type: string
+                    example: user created successfull
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                        example: 12345
+                      name:
+                        type: string
+                        example: Masud Rana
+                      role:
+                        type: string
+                        enum: [admin, publisher, user]
+                        example: user
+                      status:
+                        type: string
+                        enum: [pending, approved, blocked, declined]
+                        example: pending
+                  links:
+                    type: object
+                    properties:
+                      login:
+                        type: string
+                        format: url
+                        example: "/auth/login"
+
+        "400":
+          $ref: "#/components/responses/400"
+  "/auth/login":
+    post:
+      description: any approved user can login on the system with correct credentials. email and password.
+      summary: Login a user PUBLIC
+      tags: [Auth]
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: masud@gmail.com
+                password:
+                  type: string
+                  example: Pass1234
+              required: [email, password]
+      responses:
+        "200":
+          description: User login will success and get an access token
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 200
+                  message:
+                    type: string
+                    example: Login success
+                  data:
+                    type: object
+                    properties:
+                      access-token:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY1NTUwYjU2MzE1Y2JkYjY1YTVmYzVjYyIsIm5hbWUiOiJQYmxpc2hlciAyIiwiZW1haWwiOiJwdWJsaXNoZXIyQGdtYWlsLmNvbSIsInJvbGUiOiJwdWJsaXNoZXIiLCJzdGF0dXMiOiJwZW5kaW5nIiwiaWF0IjoxNzAwMDcyMjc4LCJleHAiOjE3MDAwNzU4Nzh9.ZAeELPvxMEW-1Gm-la2kkLP6BNTkUCj3AYGeMfymDew
+        "400":
+          $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"
+  "/books":
+    post:
+      security:
+        - bearerAuth: []
+      description: a publisher/admin can publish a book with required data. title must be unique. status will be draft. only Admin can update the book status
+      summary: create a new book PRIVATE
+      tags: [Book]
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/CreateBookDTO"
+      responses:
+        "201":
+          description: Book created success
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 201
+                  message:
+                    type: string
+                    example: Book create successfull
+                  data:
+                    $ref: "#/components/schemas/BookDTO"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+    get:
+      description: Retrive only published book list. user can search by book title, writter name and publication name.
+      summary: Retrive books list PUBLIC
+      tags: [Book]
+      parameters:
+        - $ref: "#/components/parameters/pageParam"
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/sortByParam"
+        - $ref: "#/components/parameters/sortTypeParam"
+        - $ref: "#/components/parameters/titleParam"
+        - $ref: "#/components/parameters/writterParam"
+        - $ref: "#/components/parameters/publicationParam"
+
+      responses:
+        "200":
+          description: retrive all published book list
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - type: object
+                          properties:
+                            id:
+                              type: integer
+                              format: int32
+                              example: 1
+                            name:
+                              type: string
+                              example: new book 1
+                            writter:
+                              type: string
+                              example: Masud Rana
+                            price:
+                              type: integer
+                              format: int32
+                              example: 500
+                            publication:
+                              type: string
+                              example: AB book publication
+                            author:
+                              $ref: "#/components/schemas/AuthorDTO"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: "/books?page=2&limit=10"
+                      prev:
+                        type: string
+                        example: "/books?page=1&limit=10"
+                      next:
+                        type: string
+                        example: "/books?page=3&limit=10"
+  "/books/{id}":
+    get:
+      description: get a single book by id. book status must be published
+      summary: get a book by id PUBLIC
+      tags: [Book]
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        "200":
+          description: Book Found
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/BookDTO"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+    put:
+      security:
+        - bearerAuth: []
+      description: update a book if exist or create a new one
+      summary: update a book by id PRIVATE
+      tags: [Book]
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      requestBody:
+        description: update a book by id
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/UpdateBookDTO"
+      responses:
+        "200":
+          description: Update a book by id
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 201
+                  message:
+                    type: string
+                    example: Book updated successfull
+                  data:
+                    $ref: "#/components/schemas/UpdateBookDTO"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          $ref: "#/components/responses/404"
+
+        "500":
+          $ref: "#/components/responses/500"
+    delete:
+      security:
+        - bearerAuth: []
+      description: Delete a book by id
+      summary: Delete a book by id PRIVATE
+      tags: [Book]
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        "200":
+          description: delete a book by id
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 200
+                  message:
+                    type: string
+                    example: Book deleted successfull
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+  "/books/{id}/reviews":
+    post:
+      security:
+        - bearerAuth: []
+      description: create a new review
+      summary: Create a review PRIVATE
+      tags:
+        - Book
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      requestBody:
+        description: create a new review
+        content:
+          "application/json":
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  format: int32
+                  example: 1
+                ratting:
+                  type: integer
+                  format: int32
+                  example: 5
+                comment:
+                  type: string
+                  example: very nice book. you must read
+                status:
+                  type: string
+                  enum: [draft, published]
+                  example: draft
+              required: [ratting, comment]
+      responses:
+        "201":
+          description: review created successfull
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/CreateReviewDTO"
+        "401":
+          $ref: "#/components/responses/401"
+        "400":
+          $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"
+    get:
+      description: Get all reviews for a book
+      summary: Get all reviews for a book PUBLIC
+      tags: [Book]
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+        - $ref: "#/components/parameters/pageParam"
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/sortTypeParam"
+        - $ref: "#/components/parameters/sortByParam"
+      responses:
+        "200":
+          description: Reviews for a book
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/ReviewDTO"
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        format: int32
+                        example: 1
+                      limit:
+                        type: integer
+                        format: int32
+                        example: 10
+                      totalItems:
+                        type: integer
+                        format: int32
+                        example: 40
+                      totalPage:
+                        type: integer
+                        format: int32
+                        example: 4
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        format: url
+                        example: "/api/v1/books/123456/reviews?page=2&limit=10&sortType=desc&sortBy=updatedAt"
+                      prev:
+                        type: string
+                        format: url
+                        example: "/api/v1/books/123456/reviews?page=1&limit=10&sortType=desc&sortBy=updatedAt"
+                      next:
+                        type: string
+                        format: url
+                        example: "/api/v1/books/123456/reviews?page=3&limit=10&sortType=desc&sortBy=updatedAt"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+
+  "/reviews":
+    get:
+      description: get all reviews
+      summary: Retrive reviews list PUBLIC
+      tags: [Review]
+      parameters:
+        - $ref: "#/components/parameters/pageParam"
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/sortByParam"
+        - $ref: "#/components/parameters/sortTypeParam"
+      responses:
+        "200":
+          description: Get the reviews
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 200
+                  message:
+                    type: string
+                    example: "Reviews found"
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/ReviewDTO"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: "/reviews?page=2&limit=10"
+                      prev:
+                        type: string
+                        example: "/reviews?page=1&limit=10"
+                      next:
+                        type: string
+                        example: "/reviews?page=3&limit=10"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+  "/reviews/{id}":
+    get:
+      description: Get a review by id
+      summary: Get a review by id PUBLIC
+      tags: [Review]
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        "200":
+          description: get a review by id
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 123
+                  message:
+                    type: string
+                    example: Review found
+                  data:
+                    $ref: "#/components/schemas/ReviewDTO"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+    put:
+      security:
+        - bearerAuth: []
+      description: update a review or create one
+      summary: Update a review by id PRIVATE
+      tags: [Review]
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      requestBody:
+        description: pass the data you need to update
+        content:
+          "application/json":
+            schema:
+              type: object
+              properties:
+                ratting:
+                  type: integer
+                  format: int32
+                  example: 5
+                comment:
+                  type: string
+                  example: updated review for this book
+      responses:
+        "200":
+          description: review updated
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/UpdateReviewDTO"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+    delete:
+      security:
+        - bearerAuth: []
+      description: delete a review by id
+      summary: Delete a review by id PRIVATE
+      tags: [Review]
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        "200":
+          description: review deleted
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 200
+                  message:
+                    type: string
+                    example: Review deleted successfull
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+  "/users":
+    get:
+      description: Retrive users list
+      summary: Retrive users list PRIVATE
+      security:
+        - bearerAuth: []
+      tags: [User]
+      parameters:
+        - $ref: "#/components/parameters/pageParam"
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/sortByParam"
+        - $ref: "#/components/parameters/sortTypeParam"
+        - $ref: "#/components/parameters/nameParam"
+        - $ref: "#/components/parameters/emailParam"
+        - $ref: "#/components/parameters/roleParam"
+        - $ref: "#/components/parameters/statusParam"
+      responses:
+        "200":
+          description: users found
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 200
+                  message:
+                    type: string
+                    example: Users found
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/UserDTO"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        format: url
+                        example: "/users?page=2&limit=10&role=user"
+                      prev:
+                        type: string
+                        format: url
+                        example: "/users?page=1&limit=10&role=user"
+                      next:
+                        type: string
+                        format: url
+                        example: "/users?page=3&limit=10&role=user"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+    post:
+      description: Create a new user
+      summary: Create a new user PRIVATE
+      tags: [User]
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: Create a new user
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/CreateUserDTO"
+      responses:
+        "201":
+          description: New user created successfull
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 201
+                  message:
+                    type: string
+                    example: User created successfull
+                  data:
+                    $ref: "#/components/schemas/UserDTO"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        format: url
+                        example: "/users/232323232"
+                      update:
+                        type: string
+                        format: url
+                        example: "/users/232323232/edit"
+                      delete:
+                        type: string
+                        format: url
+                        example: "/users/232323232/delete"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+  "/users/{id}":
+    get:
+      description: Get a user by id
+      summary: Get a user by id PRIVATE
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        "200":
+          description: user found
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 200
+                  message:
+                    type: string
+                    example: User found
+                  data:
+                    $ref: "#/components/schemas/UserDTO"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        format: url
+                        example: "/users/12121212"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+    patch:
+      description: Update a user by id
+      summary: update a user by id PRIVATE
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      requestBody:
+        description: Create a new user
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/UpdateUserDTO"
+      responses:
+        "200":
+          description: user updated successfull
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 200
+                  message:
+                    type: string
+                    example: User updated successfull
+                  data:
+                    $ref: "#/components/schemas/UpdateUserDTO"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: "/users/12121212"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+    delete:
+      description: Delete a user by id
+      summary: Delete a user by id PRIVATE
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        "204":
+          description: User deleted successfull
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 204
+                  message:
+                    type: string
+                    example: user deleted successfull
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UserDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          example: 12
+        name:
+          type: string
+          example: Masud Rana
+        email:
+          type: string
+          example: masud@gmail.com
+        password:
+          type: string
+          example: Pass1234
+        role:
+          type: string
+          enum: [user, publisher]
+          example: user
+      required: [name, email, password]
+    UpdateUserDTO:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Masud Rana
+        password:
+          type: string
+          example: Pass1234
+        role:
+          type: string
+          enum: [user, publisher]
+          example: user
+        status:
+          type: string
+          enum: [pending, approved, declined, blocked]
+          example: pending
+    CreateUserDTO:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Masud Rana
+        email:
+          type: string
+          example: masud@gmail.com
+        password:
+          type: string
+          example: Pass1234
+        role:
+          type: string
+          enum: [admin, user, publisher]
+          example: user
+        status:
+          type: string
+          enum: [pending, approved, blocked, declined]
+          example: pending
+      required: [name, email, password]
+    AuthorDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 7865ac6789f5623cc77000fa
+        name:
+          type: string
+          example: Masud Rana
+      required: [id, name]
+    CreateBookDTO:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Book Name 1
+        writter:
+          type: string
+          example: Masud Rana
+        price:
+          type: integer
+          format: int32
+          example: 500
+        publication:
+          type: string
+          example: AB book Publication
+        status:
+          type: string
+          enum: [draft, published]
+          example: draft
+        cover:
+          type: string
+          format: url
+          example: "http://amazon.com/s3/23ab45c90df"
+      required: [title, writter, price, publication]
+    BookDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          example: 1
+        title:
+          type: string
+          example: Book Name 1
+        writter:
+          type: string
+          example: Masud Rana
+        price:
+          type: integer
+          format: int32
+          example: 500
+        publication:
+          type: string
+          example: AB book Publication
+        status:
+          type: string
+          enum: [draft, published]
+          example: draft
+        author:
+          $ref: "#/components/schemas/AuthorDTO"
+        timestamp:
+          $ref: "#/components/schemas/TimestampDTO"
+      required: [title, writter, price, publication]
+    UpdateBookDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          example: 1
+        title:
+          type: string
+          example: Book Name 1
+        writter:
+          type: string
+          example: Masud Rana
+        price:
+          type: integer
+          format: int32
+          example: 500
+        publication:
+          type: string
+          example: AB book Publication
+        status:
+          type: string
+          enum: [draft, published]
+          example: draft
+        author:
+          $ref: "#/components/schemas/AuthorDTO"
+        timestamp:
+          $ref: "#/components/schemas/TimestampDTO"
+    ReviewDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          example: 1
+        ratting:
+          type: integer
+          format: int32
+          example: 5
+        comment:
+          type: string
+          example: very nice book. you must read
+        status:
+          type: string
+          enum: [draft, published]
+          example: draft
+        book:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: int32
+              example: 12
+        author:
+          $ref: "#/components/schemas/AuthorDTO"
+        timestamp:
+          $ref: "#/components/schemas/TimestampDTO"
+      required: [ratting, comment, book]
+    CreateReviewDTO:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 201
+        message:
+          type: string
+          example: Review created successfull
+        data:
+          $ref: "#/components/schemas/ReviewDTO"
+    UpdateReviewDTO:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 200
+        message:
+          type: string
+          example: Review updated successfull
+        data:
+          $ref: "#/components/schemas/ReviewDTO"
+    TimestampDTO:
+      type: object
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [createdAt, updatedAt]
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+          example: 2
+        limit:
+          type: integer
+          format: int32
+          example: 10
+        prev:
+          type: integer
+          format: int32
+          example: 1
+        next:
+          type: integer
+          format: int32
+          example: 3
+        totalPage:
+          type: integer
+          format: int32
+          example: 10
+        totalItems:
+          type: integer
+          format: int32
+          example: 500
+      required:
+        - page
+        - limit
+        - totalPage
+        - totalItems
+  parameters:
+    pageParam:
+      name: page
+      description: current page number
+      in: query
+      schema:
+        type: integer
+        format: int32
+        example: 1
+    limitParam:
+      name: limit
+      description: total items for every page
+      in: query
+      schema:
+        type: integer
+        format: int32
+        example: 10
+    sortByParam:
+      name: sortBy
+      description: sort the result accoring to title or timestamp
+      in: query
+      schema:
+        type: string
+        example: updatedAt
+    sortTypeParam:
+      name: sortType
+      description: sort the result order by asc or dsc
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        example: desc
+    searchParam:
+      name: search
+      description: search the result by book title
+      in: query
+      schema:
+        type: string
+        example: Book Name 1
+    writterParam:
+      name: writter
+      description: search by writter name
+      in: query
+      schema:
+        type: string
+        example: Masud Rana
+    titleParam:
+      name: title
+      description: search by book name
+      in: query
+      schema:
+        type: string
+        example: Book Name
+    publicationParam:
+      name: publication
+      description: search by publication
+      in: query
+      schema:
+        type: string
+        example: My Book Publication
+    nameParam:
+      name: name
+      description: search by name
+      in: query
+      schema:
+        type: string
+        example: Masud Rana
+    emailParam:
+      name: email
+      description: search by email
+      in: query
+      schema:
+        type: string
+        format: email
+        example: masud@gmail.com
+    roleParam:
+      name: role
+      description: search by role
+      in: query
+      schema:
+        type: string
+        enum: [user, publisher, admin]
+        example: user
+    statusParam:
+      name: status
+      description: search by status
+      in: query
+      schema:
+        type: string
+        enum: [pending, approved, declined, blocked]
+        example: approved
+    idParam:
+      name: id
+      description: id
+      required: true
+      in: path
+      schema:
+        type: string
+        example: 6557a26f9f9e14876f9d121a
+  responses:
+    "400":
+      description: Bad Request
+      content:
+        "application/json":
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                format: int32
+                example: 400
+              error:
+                type: string
+                example: bad request
+              data:
+                type: array
+                items:
+                  allOf:
+                    - type: object
+                      properties:
+                        field:
+                          type: string
+                          example: email
+                        message:
+                          type: string
+                          example: Invalid Email
+                        in:
+                          type: string
+                          enum: [query, body]
+                          example: body
+    "401":
+      description: Unauthorised
+      content:
+        "application/json":
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                format: int32
+                example: 401
+              error:
+                type: string
+                example: Unauthorized
+              message:
+                type: string
+                example: You dont't have the right permissions
+    "404":
+      description: Not Found
+      content:
+        "application/json":
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                format: int32
+                example: 404
+              error:
+                type: string
+                example: Not Found
+              message:
+                type: string
+                example: Resourse not Found
+    "500":
+      description: Server Error
+      content:
+        "application/json":
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                format: int32
+                example: 500
+              error:
+                type: string
+                example: Server Error
+              message:
+                type: string
+                example: Something went wrong in the server
