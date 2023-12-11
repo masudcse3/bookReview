@@ -221,9 +221,17 @@ paths:
                               type: integer
                               format: int32
                               example: 500
+                            cover:
+                              type: string
+                              format: url
+                              example: "https://s3.amazon.com/3434"
                             publication:
                               type: string
                               example: AB book publication
+                            status:
+                              type: string
+                              enum: [published, draft]
+                              example: published
                             author:
                               $ref: "#/components/schemas/AuthorDTO"
                   pagination:
@@ -795,7 +803,130 @@ paths:
           $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
-
+  "/users/{id}/books":
+    get:
+      description: Retrive all books of a publisher. book status could be filtered and basic sorting
+      summary: Retrive all books of a publisher
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+        - $ref: "#/components/parameters/pageParam"
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/sortByParam"
+        - $ref: "#/components/parameters/sortTypeParam"
+        - $ref: "#/components/parameters/bookStatusParam"
+      responses:
+        "200":
+          description: Books found
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - type: object
+                          properties:
+                            id:
+                              type: integer
+                              format: int32
+                              example: 1
+                            name:
+                              type: string
+                              example: new book 1
+                            writter:
+                              type: string
+                              example: Masud Rana
+                            price:
+                              type: integer
+                              format: int32
+                              example: 500
+                            publication:
+                              type: string
+                              example: AB book publication
+                            cover:
+                              type: string
+                              format: url
+                              example: "https://s3.amazon.com/23443242"
+                            status:
+                              type: string
+                              enum: [published, draft]
+                              example: published
+                  author:
+                    $ref: "#/components/schemas/AuthorDTO"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: "/users/123456/books?page=2&limit=10"
+                      prev:
+                        type: string
+                        example: "/users/123456/books?page=1&limit=10"
+                      next:
+                        type: string
+                        example: "/users/123456/books?page=3&limit=10"
+        "404":
+          $ref: "#/components/responses/404"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+  "/users/{id}/reviews":
+    get:
+      description: Retrive all reviews of a user.
+      summary: Retrive all reviews of a user
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+        - $ref: "#/components/parameters/pageParam"
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/sortByParam"
+        - $ref: "#/components/parameters/sortTypeParam"
+        - $ref: "#/components/parameters/bookStatusParam"
+      responses:
+        "200":
+          description: Reviews found
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/ReviewDTO"
+                  author:
+                    $ref: "#/components/schemas/AuthorDTO"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: "/users/123456/reviews?page=2&limit=10"
+                      prev:
+                        type: string
+                        example: "/users/123456/reviews?page=1&limit=10"
+                      next:
+                        type: string
+                        example: "/users/123456/reviews?page=3&limit=10"
+        "404":
+          $ref: "#/components/responses/404"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
 components:
   securitySchemes:
     bearerAuth:
@@ -914,6 +1045,10 @@ components:
           type: integer
           format: int32
           example: 500
+        cover:
+          type: string
+          format: url
+          example: "https://s3.amazon.com/12334"
         publication:
           type: string
           example: AB book Publication
@@ -1141,6 +1276,14 @@ components:
         type: string
         enum: [pending, approved, declined, blocked]
         example: approved
+    bookStatusParam:
+      name: status
+      description: search by status
+      in: query
+      schema:
+        type: string
+        enum: [published, draft]
+        example: published
     idParam:
       name: id
       description: id

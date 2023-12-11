@@ -5,7 +5,9 @@
  * @param {string} email
  * @returns {boolean}
  */
+const Book = require("../../../model/Book");
 const User = require("../../../model/User");
+const Review = require("../../../model/Review");
 
 const findUserByEmail = async (email) => {
   try {
@@ -43,9 +45,26 @@ const count = ({ role = "", status = "", name = "", email = "" }) => {
   return User.count(filter);
 };
 
+const totalBookCount = ({ id, status }) => {
+  const filter = {
+    author: id,
+    status: status,
+  };
+  return Book.count(filter);
+};
+const totalReviewCount = ({ id, status }) => {
+  const filter = {
+    author: id,
+    status: status,
+  };
+  return Review.count(filter);
+};
+
 module.exports = {
   findUserByEmail,
   findUserById,
   emptyUser,
   count,
+  totalBookCount,
+  totalReviewCount,
 };

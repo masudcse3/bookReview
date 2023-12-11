@@ -73,5 +73,16 @@ router
   .get(authentication, authorize(), userController.findById)
   .patch(authentication, authorize(), userController.updateUser)
   .delete(authentication, authorize(), userController.deleteUser);
-
+router.get(
+  "/users/:id/books",
+  authentication,
+  authorize(),
+  userController.findAllBooks
+);
+router.get(
+  "/users/:id/reviews",
+  authentication,
+  authorize(),
+  userController.findAllReviews
+);
 module.exports = router;

@@ -5,4 +5,14 @@ const getAllUsers = require("./findAll");
 const updateUser = require("./update");
 const deleteUser = require("./delete");
 const findById = require("./findById");
-module.exports = { createUser, getAllUsers, updateUser, deleteUser, findById };
+const findAllBooks = require("./findAllBooks");
+const findAllReviews = require("./findAllReviews");
+module.exports = {
+  createUser,
+  getAllUsers,
+  updateUser,
+  deleteUser,
+  findById,
+  findAllBooks,
+  findAllReviews,
+};
